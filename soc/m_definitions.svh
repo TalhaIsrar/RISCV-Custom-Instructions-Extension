@@ -18,6 +18,15 @@ parameter func3 REMU   = 3'b111; // remainder of unsigned division
 parameter logic [6:0] OPCODE = 7'b0110011; // ALU operation
 parameter logic [6:0] FUNC7 = 7'b0000001;  // M extension
 
+// For custom operations
+`define Q 12289 // the value to have module from --- 14 bits
+parameter logic [13:0] Q_LOGIC      = 14'd12289;  // Q value as logic
+parameter logic [6:0] OPCODE_CUSTOM = 7'b0001011; // opcode for custom 1
+// func7 is not evaluated in custom operations
+parameter func3 ADDMOD = 3'b000; // eplrr0: addition with module Q
+parameter func3 SUBMOD = 3'b001; // eplrr1: subtraction with module Q
+parameter func3 MODQ   = 3'b100; // eplim0: input module Q
+
 //// Functions to extract important parts from instruction
 // Get opcode
 function unsigned [6:0] get_ir_opcode(unsigned [31:0]ir);
