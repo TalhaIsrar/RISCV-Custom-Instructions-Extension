@@ -59,6 +59,7 @@ function logic is_negative(unsigned [31:0] value);
 endfunction
 
 
+
 //// CONTROL SIGNALS
 
 // Multiplexer for R register
@@ -71,12 +72,13 @@ endfunction
 `define MUX_R_MULT_LOWER `MUX_R_LENGTH'd4 // replace by lower 32 bits from multiplier
 
 // Multiplexer for D register
-`define MUX_D_LENGTH 2 // number of bits needed to declare mux D
+`define MUX_D_LENGTH 3 // number of bits needed to declare mux D
 // Values
 `define MUX_D_KEEP  `MUX_D_LENGTH'd0 // keep previous value
 `define MUX_D_B     `MUX_D_LENGTH'd1 // copy value from input
 `define MUX_D_B_NEG `MUX_D_LENGTH'd2 // copy value from input and multiply it by -1
 `define MUX_D_SHR   `MUX_D_LENGTH'd3 // replace by value obtained in right shift
+`define MUX_D_Q     `MUX_D_LENGTH'd4 // put Q shifted by a smaller number of bits (for custom mod)
 
 // Multiplexer for Z register
 `define MUX_Z_LENGTH 2 // number of bits needed to declare mux Z
@@ -86,19 +88,19 @@ endfunction
 `define MUX_Z_SHL_ADD    `MUX_Z_LENGTH'd2 // replace value by obtained in left shift (and adds 1 depending on ALU result)
 `define MUX_Z_MULT_UPPER `MUX_Z_LENGTH'd3 // replace by upper 32 bits from multiplier
 
-// Multiplexer for multA input
-`define MUX_MULTA_LENGTH 2 // number of bits needed to declare mux multA
+// Multiplexer for A input
+`define MUX_A_LENGTH 2 // number of bits needed to declare mux A
 // Values
-`define MUX_MULTA_R_UNSIGNED `MUX_MULTA_LENGTH'd0 // use value from first input and extend unsigned
-`define MUX_MULTA_R_SIGNED   `MUX_MULTA_LENGTH'd1 // use value from first input and extend signed
-`define MUX_MULTA_ZERO       `MUX_MULTA_LENGTH'd2 // keep it in 0 (saves dynamic power)
+`define MUX_A_R_UNSIGNED `MUX_A_LENGTH'd0 // use value from first input and extend unsigned
+`define MUX_A_R_SIGNED   `MUX_A_LENGTH'd1 // use value from first input and extend signed
+`define MUX_A_ZERO       `MUX_A_LENGTH'd2 // keep it in 0 (saves dynamic power)
 
-// Multiplexer for multB input
-`define MUX_MULTB_LENGTH 2 // number of bits needed to declare mux multB
+// Multiplexer for B input
+`define MUX_B_LENGTH 2 // number of bits needed to declare mux B
 // Values
-`define MUX_MULTB_D_UNSIGNED `MUX_MULTB_LENGTH'd0 // use value from second input and extend unsigned
-`define MUX_MULTB_D_SIGNED   `MUX_MULTB_LENGTH'd1 // use value from second input and extend signed
-`define MUX_MULTB_ZERO       `MUX_MULTB_LENGTH'd2 // keep it in 0 (saves dynamic power)
+`define MUX_B_D_UNSIGNED `MUX_B_LENGTH'd0 // use value from second input and extend unsigned
+`define MUX_B_D_SIGNED   `MUX_B_LENGTH'd1 // use value from second input and extend signed
+`define MUX_B_ZERO       `MUX_B_LENGTH'd2 // keep it in 0 (saves dynamic power)
 
 // Multiplexer for output inverter
 `define MUX_DIV_REM_LENGTH 1 // number of bits needed to declare mux div_rem
@@ -112,12 +114,17 @@ endfunction
 `define MUX_OUT_ZERO         `MUX_OUT_LENGTH'd0 // output zero
 `define MUX_OUT_DIV_REM      `MUX_OUT_LENGTH'd1 // output value from divider
 `define MUX_OUT_DIV_REM_NEG  `MUX_OUT_LENGTH'd2 // output value from divider multiplied by -1
-`define MUX_OUT_MULT_LOWER   `MUX_OUT_LENGTH'd3 // output lower bits from multipler
-`define MUX_OUT_MULT_UPPER   `MUX_OUT_LENGTH'd4 // output upper bits from multiplier
+`define MUX_OUT_ALUOUT_LOWER `MUX_OUT_LENGTH'd3 // output lower bits from multipler
+`define MUX_OUT_ALUOUT_UPPER `MUX_OUT_LENGTH'd4 // output upper bits from multiplier
 `define MUX_OUT_ALL1         `MUX_OUT_LENGTH'd5 // output all bits 1
 `define MUX_OUT_MINUS_1      `MUX_OUT_LENGTH'd6 // output is -1
 
-
+// Multiplexer for ALU output
+`define MUX_ALUOUT_LENGTH 2 // number of bits needed to declare mux aluout
+// Values
+`define MUX_ALUOUT_MULT   `MUX_ALUOUT_LENGTH'd0 // use value from multiplier (mul instructions)
+`define MUX_ALUOUT_ADDER  `MUX_ALUOUT_LENGTH'd1 // use value from adder (addmod instruction)
+`define MUX_ALUOUT_SUBTR  `MUX_ALUOUT_LENGTH'd2 // use value from subtractot (submod instruction)
 
 
 `endif // M_DEFINITIONS_H

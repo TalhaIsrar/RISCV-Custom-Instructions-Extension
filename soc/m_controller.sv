@@ -11,8 +11,8 @@ module m_controller(
     output logic [`MUX_R_LENGTH-1:0] mux_R, // multiplexer for remainder
     output logic [`MUX_D_LENGTH-1:0] mux_D, // multiplexer for divisor
     output logic [`MUX_Z_LENGTH-1:0] mux_Z, // multiplexer for quocient
-    output logic [`MUX_MULTA_LENGTH-1:0] mux_multA, // multiplexer for mult input A
-    output logic [`MUX_MULTB_LENGTH-1:0] mux_multB, // multiplexer for mult input B
+    output logic [`MUX_A_LENGTH-1:0] mux_A, // multiplexer for alu input A
+    output logic [`MUX_B_LENGTH-1:0] mux_B, // multiplexer for alu input B
     output logic [`MUX_DIV_REM_LENGTH-1:0] mux_div_rem, // multiplexer for Z/R selection
     output logic [`MUX_OUT_LENGTH-1:0] mux_out, // multiplexer for output
     output logic pcpi_ready,
@@ -89,8 +89,8 @@ begin
     mux_R = `MUX_R_KEEP;
     mux_D = `MUX_D_KEEP;
     mux_Z = `MUX_Z_KEEP;
-    mux_multA = `MUX_MULTA_ZERO;
-    mux_multB = `MUX_MULTB_ZERO;
+    mux_A = `MUX_A_ZERO;
+    mux_B = `MUX_B_ZERO;
     mux_div_rem = `MUX_DIV_REM_R;
     mux_out = `MUX_OUT_ZERO;
     pcpi_ready = '0;
@@ -111,8 +111,8 @@ begin
             pcpi_busy = 1'b0;
 
             // Set multiplier mux to zero to save dynamic power
-            mux_multA = `MUX_MULTA_ZERO;
-            mux_multB = `MUX_MULTB_ZERO;
+            mux_A = `MUX_A_ZERO;
+            mux_B = `MUX_B_ZERO;
 
             // Reset the counter
             counter_next = '0;
@@ -204,20 +204,20 @@ begin
                 unique case(current_func)
                     // For MULH both inputs should be signed
                     MULH: begin
-                        mux_multA = `MUX_MULTA_R_SIGNED;
-                        mux_multB = `MUX_MULTB_D_SIGNED;
+                        mux_A = `MUX_A_R_SIGNED;
+                        mux_B = `MUX_B_D_SIGNED;
                     end
             
                     // For MULHSU first input is signed and second unsigned
                     MULHSU: begin
-                        mux_multA = `MUX_MULTA_R_SIGNED;
-                        mux_multB = `MUX_MULTB_D_UNSIGNED;
+                        mux_A = `MUX_A_R_SIGNED;
+                        mux_B = `MUX_B_D_UNSIGNED;
                     end
 
                     // For MUL & MULHU both inputs are unsigned
                     default: begin
-                        mux_multA = `MUX_MULTA_R_UNSIGNED;
-                        mux_multB = `MUX_MULTB_D_UNSIGNED;
+                        mux_A = `MUX_A_R_UNSIGNED;
+                        mux_B = `MUX_B_D_UNSIGNED;
                     end
                 endcase
                 next_state = PRE_MULT;

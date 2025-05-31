@@ -3,22 +3,23 @@
 module m_alu(
     // CONTROL INPUTS
     //input logic clk, resetn,
-    //input logic [`MUX_MULTA_LENGTH-1:0]   mux_multA,
-    //input logic [`MUX_MULTB_LENGTH-1:0]   mux_multB,
+    //input logic [`MUX_A_LENGTH-1:0]   mux_A,
+    //input logic [`MUX_B_LENGTH-1:0]   mux_B,
     input logic [`MUX_DIV_REM_LENGTH-1:0] mux_div_rem,
+    input logic opcode,
     // DATA INPUTS
     input logic [31:0] R, // remainder
     input logic [62:0] D, // divisor
     input logic [31:0] Z, // quotient
-    input logic signed [32:0] mult_a,
-    input logic signed [32:0] mult_b,
+    input logic signed [32:0] A,
+    input logic signed [32:0] B,
     // CONTROL OUTPUTS
     output logic sub_neg,
     // DATA OUTPUTS
     output logic [31:0] sub_result,
     output logic [31:0] div_rem,
     output logic [31:0] div_rem_neg,
-    output logic signed [65:0] product
+    output logic signed [65:0] alu_out
 );
 
 
@@ -41,7 +42,7 @@ assign sub_neg = sub_result_sign[63];
 
 // Instantiate multiplier
 always_comb begin
-    product = mult_a * mult_b; // Perform multiplication
+    alu_out = A * B; // Perform multiplication
 end
 
 //// DIVISION/REMAINDER SELECTION

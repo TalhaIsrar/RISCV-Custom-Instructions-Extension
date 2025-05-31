@@ -1,10 +1,12 @@
 `include "../soc/m_definitions.svh"
 
+module m_registers_tb;
+
 // CONTROL INPUTS
 logic clk, resetn;
 //input logic ALU_neg, // whether the result in the ALU is negative. Not needed
-logic [`MUX_MULTA_LENGTH-1:0]   mux_multA;
-logic [`MUX_MULTB_LENGTH-1:0]   mux_multB;
+logic [`MUX_A_LENGTH-1:0]   mux_A;
+logic [`MUX_B_LENGTH-1:0]   mux_B;
 logic [`MUX_R_LENGTH-1:0] mux_R; // multiplexer selection for remainder
 logic [`MUX_D_LENGTH-1:0] mux_D; // multiplexer selection for divisor
 logic [`MUX_Z_LENGTH-1:0] mux_Z; // multiplexer selection for quotient
@@ -16,8 +18,8 @@ logic [31:0] sub_result; // result from the subtractor
 logic [65:0] product;
 // CONTROL OUTPUTS
 // DATA OUTPUTS
-logic signed [32:0] mult_a;
-logic signed [32:0] mult_b;
+logic signed [32:0] A;
+logic signed [32:0] B;
 logic [31:0] R; // remainder
 logic [62:0] D; // divisor
 logic [31:0] Z; // quotient
@@ -40,8 +42,8 @@ end
 
 initial begin
     // Set all inputs initially to 0 (avoid X or Z)
-    mux_multA = '0;
-    mux_multB = '0;
+    mux_A = '0;
+    mux_B = '0;
     mux_R = '0;
     mux_D = '0;
     mux_Z = '0;
@@ -166,7 +168,7 @@ initial begin
     #4ns
 
     mux_Z = `MUX_Z_MULT_UPPER;
-    mux_multA = `MUX_MULTA_R_SIGNED;
+    mux_A = `MUX_A_R_SIGNED;
     product = -65'd357;
     @(posedge clk) @(posedge clk) @(clk) assert(Z == {product[65],product[62:32]}) else $error("Z = %d, product = %d", Z, product);
     #4ns
