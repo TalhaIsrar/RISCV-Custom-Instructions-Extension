@@ -128,7 +128,7 @@ begin
             next_current_func = get_ir_func3(instruction);
 
             // Input conditions for valid co-processor instruction
-            if (pcpi_valid && (next_opcode == OPCODE) && (next_opcode == FUNC7)) begin    
+            if (pcpi_valid && (next_opcode == OPCODE) && (get_ir_func7(instruction) == FUNC7)) begin
                 // reset quotient mux
                 mux_Z = `MUX_Z_ZERO;    
 

@@ -41,9 +41,6 @@ logic [`MUX_DIV_REM_LENGTH-1:0] mux_div_rem;
 logic [`MUX_OUT_LENGTH-1:0] mux_out;
 logic [`MUX_ALUOUT_LENGTH-1:0] mux_aluout;
 
-// this line should be removed after controller is updated with custom instructions
-assign mux_aluout = `MUX_ALUOUT_MULT;
-
 
 //// SUB-BLOCK INSTANTIATION
 
