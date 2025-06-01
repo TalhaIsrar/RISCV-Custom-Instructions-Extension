@@ -39,6 +39,10 @@ logic [`MUX_A_LENGTH-1:0] mux_A;
 logic [`MUX_B_LENGTH-1:0] mux_B;
 logic [`MUX_DIV_REM_LENGTH-1:0] mux_div_rem;
 logic [`MUX_OUT_LENGTH-1:0] mux_out;
+logic [`MUX_ALUOUT_LENGTH-1:0] mux_aluout;
+
+// this line should be removed after controller is updated with custom instructions
+assign mux_aluout = `MUX_ALUOUT_MULT;
 
 
 //// SUB-BLOCK INSTANTIATION
@@ -63,7 +67,7 @@ m_registers registers(
 
 // ALU
 m_alu alu(
-    .mux_div_rem(mux_div_rem), .opcode('0), // control inputs
+    .mux_div_rem(mux_div_rem), .mux_aluout(mux_aluout), // control inputs
     .R(R), .D(D), .Z(Z), .A(A), .B(B), // data inputs
     .sub_neg(sub_neg), // control outputs
     .sub_result(sub_result), .div_rem(div_rem), .div_rem_neg(div_rem_neg), .alu_out(alu_out) // data outputs

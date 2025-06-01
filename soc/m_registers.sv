@@ -31,7 +31,7 @@ logic [62:0] next_D; // divisor
 logic [31:0] next_Z; // quotient
 logic [65:0] next_alu; // product
 logic [65:0] alu; // product
-logic signed [32:0] next_A, next_B; // operands of multiplication
+logic signed [32:0] next_A, next_B; // operands of ALU
 
 // SEQUENTIAL BLOCK
 // All registers are updated
