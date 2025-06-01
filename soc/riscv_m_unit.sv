@@ -52,7 +52,7 @@ m_controller controller (
     .clk(clk), .resetn(resetn), .pcpi_valid(valid), // control input
     .instruction(instruction), .rs1(rs1), .rs2(rs2), // data inputs
     .mux_R(mux_R), .mux_D(mux_D), .mux_Z(mux_Z), .mux_A(mux_A), .mux_B(mux_B), // control inputs
-    .mux_div_rem(mux_div_rem), .mux_out(mux_out), .pcpi_ready(ready), .pcpi_wr(wr), .pcpi_busy(busy), // control inputs
+    .mux_div_rem(mux_div_rem), .mux_aluout(mux_aluout), .mux_out(mux_out), .pcpi_ready(ready), .pcpi_wr(wr), .pcpi_busy(busy), // control inputs
     .rs1_neg(rs1_neg), .rs2_neg(rs2_neg) // data outputs
 );
 

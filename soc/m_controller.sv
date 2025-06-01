@@ -14,6 +14,7 @@ module m_controller(
     output logic [`MUX_A_LENGTH-1:0] mux_A, // multiplexer for alu input A
     output logic [`MUX_B_LENGTH-1:0] mux_B, // multiplexer for alu input B
     output logic [`MUX_DIV_REM_LENGTH-1:0] mux_div_rem, // multiplexer for Z/R selection
+    output logic [`MUX_ALUOUT_LENGTH-1:0] mux_aluout, // multiplexer for alu output selection
     output logic [`MUX_OUT_LENGTH-1:0] mux_out, // multiplexer for output
     output logic pcpi_ready,
     output logic pcpi_wr,
@@ -28,6 +29,7 @@ logic [4:0] counter_next;
 
 // Internal register to store input function
 logic [2:0] current_func, next_current_func;
+logic [6:0] current_opcode, next_opcode;
 
 // Comparator (subtractor) for input values
 logic rs1_smaller_rs2;
@@ -43,7 +45,6 @@ endfunction
 // STATE
 typedef enum logic [2:0] {
     IDLE   = 3'b000,
-    //VALID  = 3'b001,
     DIVID  = 3'b010,
     SELECT = 3'b011,
     DONE   = 3'b100,
@@ -72,11 +73,13 @@ begin
         state <= IDLE;
         counter <= 5'b00000;
         current_func <= '0;
+        current_opcode <= '0;
     end
     else begin
         state <= next_state;
         counter <= counter_next;
         current_func <= next_current_func;
+        current_opcode <= next_opcode;
     end
 end
 
@@ -93,10 +96,12 @@ begin
     mux_B = `MUX_B_ZERO;
     mux_div_rem = `MUX_DIV_REM_R;
     mux_out = `MUX_OUT_ZERO;
+    mux_aluout = `MUX_ALUOUT_MULT;
     pcpi_ready = '0;
     pcpi_wr = '0;
     pcpi_busy = '0;
     next_current_func = current_func;
+    next_opcode = current_opcode;
     counter_next = '0;
     
     // setting registers to previous state
@@ -117,15 +122,15 @@ begin
             // Reset the counter
             counter_next = '0;
 
-            // Input conditions for valid co-processor instruction
-            if (pcpi_valid && (get_ir_opcode(instruction) == OPCODE) 
-                            && (get_ir_func7(instruction) == FUNC7)) begin            
-                //next_state = VALID;
-                // Get the current func3
-                next_current_func = get_ir_func3(instruction);
+            next_opcode = get_ir_opcode(instruction);
+            
+            // Get the current func3
+            next_current_func = get_ir_func3(instruction);
 
+            // Input conditions for valid co-processor instruction
+            if (pcpi_valid && (next_opcode == OPCODE) && (next_opcode == FUNC7)) begin    
                 // reset quotient mux
-                mux_Z = `MUX_Z_ZERO;
+                mux_Z = `MUX_Z_ZERO;    
 
                 // Mux selection for signed DIV and REM and negative rs1
                 if ((next_current_func == DIV || next_current_func == REM) 
@@ -163,16 +168,15 @@ begin
                 end
 
             end else begin
-                next_state = IDLE;
+                if (pcpi_valid && (current_opcode == OPCODE_CUSTOM)) begin
+                    // reset quotient mux
+                    mux_Z = `MUX_Z_ZERO;
+                    next_state = SELECT;
+                end else begin
+                    next_state = IDLE;
+                end
             end      
         end
-
-        /*VALID: begin
-            // Set busy to 1showing computation is in process
-            pcpi_busy = 1'b1;
-            next_state = IDLE;
-            
-        end*/
 
         DIVID: begin
             pcpi_busy = 1'b1;
@@ -197,10 +201,10 @@ begin
             pcpi_busy = 1'b1;
 
             // Selection for div or rem mux
-            mux_div_rem = is_div(current_func) ? `MUX_DIV_REM_Z : `MUX_DIV_REM_R;
+            mux_div_rem = is_div(current_func) && (current_opcode == OPCODE) ? `MUX_DIV_REM_Z : `MUX_DIV_REM_R;
 
             // Selection for mul mux
-            if (is_mult(current_func)) begin
+            if (is_mult(current_func) && (current_opcode == OPCODE)) begin
                 unique case(current_func)
                     // For MULH both inputs should be signed
                     MULH: begin
@@ -220,73 +224,99 @@ begin
                         mux_B = `MUX_B_D_UNSIGNED;
                     end
                 endcase
-                next_state = PRE_MULT;
+                next_state = PRE_MULT;    
             end else begin
-                next_state = DONE;
+                if ((current_func == ADDMOD || current_func == SUBMOD) && current_opcode == OPCODE_CUSTOM) begin
+                    mux_A = `MUX_A_R_SIGNED;
+                    mux_B = `MUX_B_D_SIGNED;
+
+                    next_state = PRE_MULT; 
+
+                end else begin
+                    next_state = DONE;
+                end                
             end
         end
 
         PRE_MULT: begin
+            if (current_opcode == OPCODE_CUSTOM) begin
+                mux_aluout = (current_func == ADDMOD) ? `MUX_ALUOUT_ADDER : `MUX_ALUOUT_SUBTR;
+            end else begin
+                mux_aluout = `MUX_ALUOUT_MULT;
+            end
+
             pcpi_busy = 1'b1;
             next_state = MULTIP;
         end
 
         MULTIP: begin
             pcpi_busy = 1'b1;
-            if (current_func == MUL) begin
+            
+            if (current_opcode == OPCODE) begin
+                if (current_func == MUL) begin
+                    mux_R = `MUX_R_MULT_LOWER;
+                    mux_div_rem = `MUX_DIV_REM_R;
+                end else begin
+                    mux_Z = `MUX_Z_MULT_UPPER;
+                    mux_div_rem = `MUX_DIV_REM_Z;
+                end
+            end else begin
                 mux_R = `MUX_R_MULT_LOWER;
                 mux_div_rem = `MUX_DIV_REM_R;
-            end else begin
-                mux_Z = `MUX_Z_MULT_UPPER;
-                mux_div_rem = `MUX_DIV_REM_Z;
             end
+
             next_state = DONE;
         end
 
         DONE: begin
             // Output mux logic
-            // Check if it is multiplication
-            if (is_mult(current_func)) begin
-                // If function is MUL then we use lower bits otherwise upper bits
-                if (current_func == MUL) begin
-                    mux_div_rem = `MUX_DIV_REM_R;
-                end else begin
-                    mux_div_rem = `MUX_DIV_REM_Z;
-                end
-                mux_out = `MUX_OUT_DIV_REM;
-
-            // If its not multiplication, it must be division or remainder
+            // Check if function is custom function else it is mult,div,rem
+            if (current_opcode == OPCODE_CUSTOM) begin
+                mux_div_rem = `MUX_DIV_REM_R;
             end else begin
-                // Checking condition of signed DIV or REM and also negative output conditions
-                // Quotient is negative if sign of rs1 is not equal to sign of rs2
-                // Remainder has the same sign as the dividend
-                
-                // Selection for div or rem mux
-                mux_div_rem = is_div(current_func) ? `MUX_DIV_REM_Z : `MUX_DIV_REM_R;
-
-                if ((current_func == DIV && (is_negative(rs1) != is_negative(rs2)))
-                        || (current_func == REM && is_negative(rs1))) begin
-                    mux_out = `MUX_OUT_DIV_REM_NEG;
-                end else begin
-                    mux_out = `MUX_OUT_DIV_REM;
-                end
-
-                // Evaluate especial cases
-                if (rs2 == '0) begin // division by 0 cases
-                    if(is_rem(current_func)) begin
-                        mux_out = `MUX_OUT_DIV_REM;
-                    end else if (current_func == DIV) begin
-                        mux_out = `MUX_OUT_MINUS_1;
-                    end else if (current_func == DIVU) begin
-                        mux_out = `MUX_OUT_ALL1;
+                // Check if it is multiplication
+                if (is_mult(current_func)) begin
+                    // If function is MUL then we use lower bits otherwise upper bits
+                    if (current_func == MUL) begin
+                        mux_div_rem = `MUX_DIV_REM_R;
+                    end else begin
+                        mux_div_rem = `MUX_DIV_REM_Z;
                     end
-                end else if(rs1_smaller_rs2) begin
-                    mux_out = is_div(current_func) ? `MUX_OUT_ZERO : `MUX_OUT_DIV_REM;
-                end else if (rs1 == {-32'd1} && rs2 == {32{1'b1}}) begin // Overflow
-                    if (current_func == DIV) begin
+                    mux_out = `MUX_OUT_DIV_REM;
+
+                // If its not multiplication & custom, it must be division or remainder
+                end else begin
+                    // Checking condition of signed DIV or REM and also negative output conditions
+                    // Quotient is negative if sign of rs1 is not equal to sign of rs2
+                    // Remainder has the same sign as the dividend
+                    
+                    // Selection for div or rem mux
+                    mux_div_rem = is_div(current_func) ? `MUX_DIV_REM_Z : `MUX_DIV_REM_R;
+
+                    if ((current_func == DIV && (is_negative(rs1) != is_negative(rs2)))
+                            || (current_func == REM && is_negative(rs1))) begin
+                        mux_out = `MUX_OUT_DIV_REM_NEG;
+                    end else begin
                         mux_out = `MUX_OUT_DIV_REM;
-                    end else if (current_func == REM) begin
-                        mux_out = `MUX_OUT_ZERO;
+                    end
+
+                    // Evaluate especial cases
+                    if (rs2 == '0) begin // division by 0 cases
+                        if(is_rem(current_func)) begin
+                            mux_out = `MUX_OUT_DIV_REM;
+                        end else if (current_func == DIV) begin
+                            mux_out = `MUX_OUT_MINUS_1;
+                        end else if (current_func == DIVU) begin
+                            mux_out = `MUX_OUT_ALL1;
+                        end
+                    end else if(rs1_smaller_rs2) begin
+                        mux_out = is_div(current_func) ? `MUX_OUT_ZERO : `MUX_OUT_DIV_REM;
+                    end else if (rs1 == {-32'd1} && rs2 == {32{1'b1}}) begin // Overflow
+                        if (current_func == DIV) begin
+                            mux_out = `MUX_OUT_DIV_REM;
+                        end else if (current_func == REM) begin
+                            mux_out = `MUX_OUT_ZERO;
+                        end
                     end
                 end
             end
@@ -298,6 +328,7 @@ begin
 
             next_state = IDLE;
             next_current_func = '0;
+            next_opcode = '0;
         end
 
         default:
