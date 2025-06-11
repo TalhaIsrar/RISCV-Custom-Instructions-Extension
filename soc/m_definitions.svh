@@ -59,6 +59,30 @@ function logic is_negative(unsigned [31:0] value);
 endfunction
 
 
+function string get_operation_name(logic [6:0] opcode, func3 func3);
+    if(opcode == OPCODE) begin
+        case (func3)
+            MUL: return "MUL";
+            MULH: return "MULH";
+            MULHSU: return "MULHSU";
+            MULHU: return "MULHU";
+            DIV: return "DIV";
+            DIVU: return "DIVU";
+            REM: return "REM";
+            REMU:  return "REMU";
+            default: return "WRONG_M";
+        endcase
+    end else if (opcode == OPCODE_CUSTOM) begin
+        case (func3)
+            ADDMOD: return "ADDMOD";
+            SUBMOD: return "SUBMOD";
+            MODQ: return "MODQ";
+            default: return "WRONG_CUSTOM";
+        endcase
+    end else begin
+        return "WRONG_OPCODE";
+    end
+endfunction
 
 //// CONTROL SIGNALS
 

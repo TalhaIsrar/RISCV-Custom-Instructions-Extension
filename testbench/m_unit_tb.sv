@@ -2,6 +2,9 @@
 
 `timescale 1ns / 1ns
 
+int number_failures = 0;
+int number_tests = 0;
+
 module m_unit_tb;
     timeunit 1ns / 1ns;
     reg clk;
@@ -56,6 +59,116 @@ module m_unit_tb;
             end
             @(posedge clk);
         end
+    endtask
+
+    task test_general(input logic [6:0] opcode, input func3 func3);
+    begin
+        logic [31:0] expected, rs1, rs2;
+        logic [63:0] intermediate_result;
+        logic signed [31:0] rs1_signed, rs2_signed;
+        logic signed [32:0] rs1_ext, rs2_ext;
+        logic signed [65:0] intermediate_result_ext;
+
+        @(posedge clk);
+        if(opcode == OPCODE) begin
+            rs1 = $urandom_range({32{1'b1}}, 0);
+            rs2 = $urandom_range({32{1'b1}}, 0);
+            case (func3)
+                MUL: begin
+                    intermediate_result = rs1*rs2;
+                    expected = intermediate_result[31:0];
+                end
+                MULH: begin
+                    intermediate_result = $signed(rs1)*$signed(rs2);
+                    expected = intermediate_result[63:32];
+                end
+                MULHSU: begin
+                    rs1_ext = {rs1[31],rs1};
+                    rs2_ext = {1'b0,rs2};
+                    intermediate_result_ext = rs1_ext*rs2_ext;
+                    expected = {intermediate_result_ext[65],intermediate_result_ext[62:32]};
+                end
+                MULHU: begin
+                    intermediate_result = rs1*rs2;
+                    expected = intermediate_result[63:32];
+                end
+                DIV: begin
+                    expected = $signed(rs1)/$signed(rs2);
+                end
+                DIVU: begin
+                    expected = rs1/rs2;
+                end
+                REM: begin
+                    expected = $signed(rs1)%$signed(rs2);
+                end
+                REMU:  begin
+                    expected = rs1%rs2;
+                end
+                default: begin
+                    expected = '0;
+                end
+            endcase
+        end else if (opcode == OPCODE_CUSTOM) begin
+            case (func3)
+                ADDMOD: begin
+                    rs1 = $urandom_range(`Q-1);
+                    rs2 = $urandom_range(`Q-1);
+                    expected = (rs1 + rs2) % `Q;
+                end
+                SUBMOD: begin
+                    rs1 = $urandom_range(2*`Q-1);
+                    rs2 = $urandom_range(2*`Q-1);
+                    rs1_signed = rs1 - `Q;
+                    rs2_signed = rs2 - `Q;
+                    expected = (rs1_signed - rs2_signed) % `Q;
+                end
+                MODQ: begin
+                    rs1 = $urandom_range({32{1'b1}}, 0);
+                    expected = rs1 % `Q;
+                end 
+                default: begin
+                    $error("Wrong func3");
+                end
+            endcase
+        end else begin
+            $error("Wrong opcode");
+        end
+        m_valid <= '1;
+        m_instruction <= {16'h0200,1'b0,func3,5'd0,opcode};
+        m_rs1 <= rs1;
+        m_rs2 <= rs2;
+
+        @(posedge clk);
+        m_valid <= '0;
+        wait(m_ready);
+
+        if (m_rd == expected) begin
+		    //$display("Passed at %08d: insn DIVU, rs1 %h, rs2 %h, Result %h", $time, m_rs1, m_rs2, expected);
+        end else begin
+		    $display("Failed at %08d: instn %s, rs1 %h, rs2 %h, Expected %h, Calculated %h", $time, get_operation_name(opcode, func3), m_rs1, m_rs2, expected, m_rd);
+            number_failures++;
+        end
+        number_tests++;
+        @(posedge clk);
+    end
+    endtask
+
+    task test_ADDMOD();
+    begin
+        test_general(OPCODE_CUSTOM, ADDMOD);
+    end
+    endtask
+
+    task test_SUBMOD();
+    begin
+        test_general(OPCODE_CUSTOM, SUBMOD);
+    end
+    endtask
+
+    task test_MODQ();
+    begin
+        test_general(OPCODE_CUSTOM, MODQ);
+    end
     endtask
 
     initial begin
@@ -128,6 +241,10 @@ module m_unit_tb;
         test(REMU, 32'h00000005, 32'h0000000D, 32'h00000005); // REMU 5 % 13 = 5
         test(REMU, 32'h00003000, 32'h00003001, 32'h00003000); // REMU h3000 % h3001 = h3000
         test(REMU, 32'h0000000D, 32'h00000000, 32'h0000000D); // REMU 13 % 0 = 13              DIV BY 0
+
+        $display("Number of failed tests: %d", number_failures);
+        $display("Total number of tests:  %d", number_tests);
+        $stop;
 
 	$stop;
     end
