@@ -242,6 +242,21 @@ module m_unit_tb;
         test(REMU, 32'h00003000, 32'h00003001, 32'h00003000); // REMU h3000 % h3001 = h3000
         test(REMU, 32'h0000000D, 32'h00000000, 32'h0000000D); // REMU 13 % 0 = 13              DIV BY 0
 
+        $display("Testing ADDMOD");
+        for (int i=0; i<100; i++) begin
+            test_ADDMOD();
+        end
+
+        $display("Testing SUBMOD");
+        for (int i=0; i<100; i++) begin
+            test_SUBMOD();
+        end
+
+        $display("Testing MODQ");
+        for (int i=0; i<100; i++) begin
+            test_MODQ();
+        end
+
         $display("Number of failed tests: %d", number_failures);
         $display("Total number of tests:  %d", number_tests);
         $stop;

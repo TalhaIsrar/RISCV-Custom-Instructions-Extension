@@ -168,7 +168,7 @@ begin
                 end
 
             end else begin
-                if (pcpi_valid && (current_opcode == OPCODE_CUSTOM)) begin
+                if (pcpi_valid && (next_opcode == OPCODE_CUSTOM)) begin
                     // reset quotient mux
                     mux_Z = `MUX_Z_ZERO;
                     next_state = SELECT;
