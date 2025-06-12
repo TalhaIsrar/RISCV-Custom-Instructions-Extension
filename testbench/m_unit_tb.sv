@@ -40,11 +40,11 @@ module m_unit_tb;
         forever #5 clk = ~clk;
     end
 
-    task test(func3 instruction,input [31:0] rs1,input [31:0] rs2,input [31:0] expected);
+    task test(func3 instruction,input [31:0] rs1,input [31:0] rs2,input [31:0] expected, input is_custom=1'b0);
         begin
             @(posedge clk);
             m_valid <= '1;
-            m_instruction <= {16'h0200,1'b0,instruction,12'h033};
+            m_instruction <= {16'h0200,1'b0,instruction,(is_custom ? 12'h00b : 12'h033)};
             m_rs1 <= rs1;
             m_rs2 <= rs2;
 
@@ -255,6 +255,9 @@ module m_unit_tb;
         for (int i=0; i<100; i++) begin
             test_MULQ();
         end
+
+        test(MULQ, Q_LOGIC, 32'h00000001, 32'h00000000, '1);
+        test(MULQ, 'd2, 'd3, 'd6, '1);
 
         $display("Number of failed tests: %d", number_failures);
         $display("Total number of tests:  %d", number_tests);

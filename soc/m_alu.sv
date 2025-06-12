@@ -68,7 +68,7 @@ always_comb begin
     product = A * B; // Perform multiplication
 
     // Determine which add/sub result should be passed to the output (mod operation)
-    sum_greater_Q = sum[17:1] > {3'b000, Q_LOGIC};
+    sum_greater_Q = sum[17:1] >= {3'b000, Q_LOGIC};
     sub_custom_neg = sum[17];
     // Assign outputs
     case (mux_aluout)

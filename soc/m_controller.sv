@@ -7,6 +7,7 @@ module m_controller(
     // DATA INPUTS
     input logic [31:0] instruction, // instruction to analyze
     input logic [31:0] rs1, rs2, // operands to analyze
+    input logic [31:0] alu_out, // alu output for comparison
     // CONTROL OUTPUTS
     output logic [`MUX_R_LENGTH-1:0] mux_R, // multiplexer for remainder
     output logic [`MUX_D_LENGTH-1:0] mux_D, // multiplexer for divisor
@@ -61,6 +62,9 @@ assign rs2_neg = -rs2;
 always_comb begin
     abs_rs1[31:0] = (is_negative(rs1) && rs1_is_signed((state == DONE) ? current_func : next_current_func)) ? rs1_neg : rs1;
     abs_rs2[31:0] = (is_negative(rs2) && rs2_is_signed((state == DONE) ? current_func : next_current_func)) ? rs2_neg : rs2;
+    
+    abs_rs1 = (current_opcode == OPCODE_CUSTOM) ? alu_out[31:0] : abs_rs1;
+    abs_rs2 = (current_opcode == OPCODE_CUSTOM) ? {18'd0,Q_LOGIC} : abs_rs1;
 
     rs1_smaller_rs2 = abs_rs1 < abs_rs2;
 end
@@ -278,8 +282,13 @@ begin
                     mux_aluout = `MUX_ALUOUT_MULT;
                     mux_R = `MUX_R_MULT_LOWER;
                     mux_D = `MUX_D_Q;
-                    next_state = DIVID;
-                    counter_next = 'd27;
+                    
+                    if(rs1_smaller_rs2) begin
+                        next_state = DONE;
+                    end else begin
+                        next_state = DIVID;
+                        counter_next = 'd27;
+                    end
                 end else begin
                     mux_aluout = (current_func == ADDMOD) ? `MUX_ALUOUT_ADDER : `MUX_ALUOUT_SUBTR;
                 end
