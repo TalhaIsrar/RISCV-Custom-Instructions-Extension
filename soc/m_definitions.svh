@@ -25,7 +25,7 @@ parameter logic [6:0] OPCODE_CUSTOM = 7'b0001011; // opcode for custom 1
 // func7 is not evaluated in custom operations
 parameter func3 ADDMOD = 3'b000; // eplrr0: addition with module Q
 parameter func3 SUBMOD = 3'b001; // eplrr1: subtraction with module Q
-parameter func3 MODQ   = 3'b100; // eplim0: input module Q
+parameter func3 MULQ   = 3'b010; // eplim0: input module Q
 
 //// Functions to extract important parts from instruction
 // Get opcode
@@ -75,7 +75,7 @@ function string get_operation_name(logic [6:0] opcode, func3 func3);
         case (func3)
             ADDMOD: return "ADDMOD";
             SUBMOD: return "SUBMOD";
-            MODQ: return "MODQ";
+            MULQ: return "MULQ";
             default: return "WRONG_CUSTOM";
         endcase
     end else begin

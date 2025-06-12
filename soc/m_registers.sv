@@ -83,7 +83,7 @@ begin
         `MUX_D_B:     next_D = {rs2,31'd0};
         `MUX_D_B_NEG: next_D = {rs2_neg,31'd0};
         `MUX_D_SHR:   next_D = {1'b0,D[62:1]};
-        `MUX_D_Q:     next_D = {18'd0,Q_LOGIC,31'd0};
+        `MUX_D_Q:     next_D = {22'd0,Q_LOGIC,27'd0};
     endcase
 
     unique case (mux_Z)

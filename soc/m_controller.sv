@@ -48,7 +48,8 @@ typedef enum logic [2:0] {
     DIVID  = 3'b001,
     SELECT = 3'b010,
     DONE   = 3'b011,
-    MULTIP = 3'b100
+    MULTIP = 3'b100,
+    SELECT_MULQ = 3'b101
 } state_t;
 state_t state, next_state;
 
@@ -169,16 +170,11 @@ begin
             end else begin
                 if (pcpi_valid && (next_opcode == OPCODE_CUSTOM)) begin
                    
-                    if(next_current_func == MODQ) begin
-                        counter_next = 'd31;
-                        mux_D = `MUX_D_Q;
+                    if(next_current_func == MULQ) begin
                         mux_R = `MUX_R_A;
+                        mux_D = `MUX_D_B;
                         mux_Z = `MUX_Z_ZERO;
-                        next_state = DIVID;
-                        if (rs1 < {18'b0,Q_LOGIC}) begin
-                            mux_R = `MUX_R_A; // get rs1 to return in case of REM
-                            next_state = DONE;
-                        end
+                        next_state = SELECT;
                     end else begin // ADDMOD and SUBMOD
                          // copy inputs to R and D operands
                         mux_R = `MUX_R_A;
@@ -208,7 +204,7 @@ begin
                 // Incrementing the counter
                 counter_next = counter - 5'b00001;
             end else begin
-                next_state = SELECT;
+                next_state = (current_opcode == OPCODE_CUSTOM && current_func == MULQ) ? SELECT_MULQ : SELECT;
             end
         end
 
@@ -247,7 +243,13 @@ begin
 
                     next_state = MULTIP; 
 
+                end else if (current_func == MULQ && current_opcode == OPCODE_CUSTOM) begin
+                    mux_A = `MUX_A_R_UNSIGNED;
+                    mux_B = `MUX_B_D_UNSIGNED;
+                    next_state = MULTIP;
                 end else begin
+                    mux_A = `MUX_A_R_UNSIGNED;
+                    mux_B = `MUX_B_D_UNSIGNED;
                     next_state = DONE;
                 end                
             end
@@ -255,12 +257,6 @@ begin
 
         MULTIP: begin
             pcpi_busy = 1'b1;
-            
-            if (current_opcode == OPCODE_CUSTOM) begin
-                mux_aluout = (current_func == ADDMOD) ? `MUX_ALUOUT_ADDER : `MUX_ALUOUT_SUBTR;
-            end else begin
-                mux_aluout = `MUX_ALUOUT_MULT;
-            end
 
             if (current_opcode == OPCODE) begin
                 if (current_func == MUL) begin
@@ -275,6 +271,23 @@ begin
                 mux_div_rem = `MUX_DIV_REM_R;
             end
 
+            next_state = DONE;
+            
+            if (current_opcode == OPCODE_CUSTOM) begin
+                if(current_func == MULQ) begin
+                    mux_aluout = `MUX_ALUOUT_MULT;
+                    mux_R = `MUX_R_MULT_LOWER;
+                    mux_D = `MUX_D_Q;
+                    next_state = DIVID;
+                    counter_next = 'd27;
+                end else begin
+                    mux_aluout = (current_func == ADDMOD) ? `MUX_ALUOUT_ADDER : `MUX_ALUOUT_SUBTR;
+                end
+            end
+        end
+
+        SELECT_MULQ: begin
+            pcpi_busy = 1'b1;
             next_state = DONE;
         end
 

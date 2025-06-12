@@ -120,10 +120,10 @@ module m_unit_tb;
                     expected = $signed(rs1 - rs2) % `Q; // might generate the negative result
                     if (expected[31]) expected = $signed(expected) + `Q; // convert to positive by adding Q
                 end
-                MODQ: begin
-                    rs1 = $urandom_range({32{1'b1}}, 0);
-                    rs2 = {18'd0,Q_LOGIC};
-                    expected = rs1 % `Q;
+                MULQ: begin
+                    rs1 = $urandom_range(`Q-1);
+                    rs2 = $urandom_range(`Q-1);
+                    expected = (rs1 * rs2) % `Q;
                 end 
                 default: begin
                     $error("Wrong func3");
@@ -164,9 +164,9 @@ module m_unit_tb;
     end
     endtask
 
-    task test_MODQ();
+    task test_MULQ();
     begin
-        test_general(OPCODE_CUSTOM, MODQ);
+        test_general(OPCODE_CUSTOM, MULQ);
     end
     endtask
 
@@ -251,9 +251,9 @@ module m_unit_tb;
             test_SUBMOD();
         end
 
-        $display("Testing MODQ");
+        $display("Testing MULQ");
         for (int i=0; i<100; i++) begin
-            test_MODQ();
+            test_MULQ();
         end
 
         $display("Number of failed tests: %d", number_failures);
