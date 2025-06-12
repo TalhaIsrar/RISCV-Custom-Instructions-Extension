@@ -65,7 +65,6 @@ module m_unit_tb;
     begin
         logic [31:0] expected, rs1, rs2;
         logic [63:0] intermediate_result;
-        logic signed [31:0] rs1_signed, rs2_signed;
         logic signed [32:0] rs1_ext, rs2_ext;
         logic signed [65:0] intermediate_result_ext;
 
@@ -116,14 +115,14 @@ module m_unit_tb;
                     expected = (rs1 + rs2) % `Q;
                 end
                 SUBMOD: begin
-                    rs1 = $urandom_range(2*`Q-1);
-                    rs2 = $urandom_range(2*`Q-1);
-                    rs1_signed = rs1 - `Q;
-                    rs2_signed = rs2 - `Q;
-                    expected = (rs1_signed - rs2_signed) % `Q;
+                    rs1 = $urandom_range(`Q-1);
+                    rs2 = $urandom_range(`Q-1);
+                    expected = $signed(rs1 - rs2) % `Q; // might generate the negative result
+                    if (expected[31]) expected = $signed(expected) + `Q; // convert to positive by adding Q
                 end
                 MODQ: begin
                     rs1 = $urandom_range({32{1'b1}}, 0);
+                    rs2 = {18'd0,Q_LOGIC};
                     expected = rs1 % `Q;
                 end 
                 default: begin

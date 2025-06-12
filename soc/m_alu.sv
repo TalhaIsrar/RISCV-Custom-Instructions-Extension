@@ -56,7 +56,7 @@ always_comb begin
     sum_a = {A[32],A[14:0],is_sub};
     sum_b = {B[32],B[14:0],1'b0};
     // perform sum/subtraction
-    sum = sum_a + (is_sub ? ~sub_b : sub_b);
+    sum = sum_a + (is_sub ? ~sum_b : sum_b);
     sum[0] = 1'b1; // set this bit in case a further subtraction is needed
     // If sum, subtract Q (add -Q). If subtraction, add Q
     sum_Q[16:1] = is_sub ? {2'b00, Q_LOGIC} : {2'b11, ~Q_LOGIC};

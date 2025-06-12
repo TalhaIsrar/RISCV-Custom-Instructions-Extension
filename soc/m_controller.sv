@@ -45,11 +45,10 @@ endfunction
 // STATE
 typedef enum logic [2:0] {
     IDLE   = 3'b000,
-    DIVID  = 3'b010,
-    SELECT = 3'b011,
-    DONE   = 3'b100,
-    PRE_MULT = 3'b101,
-    MULTIP = 3'b110
+    DIVID  = 3'b001,
+    SELECT = 3'b010,
+    DONE   = 3'b011,
+    MULTIP = 3'b100
 } state_t;
 state_t state, next_state;
 
@@ -92,8 +91,8 @@ begin
     mux_R = `MUX_R_KEEP;
     mux_D = `MUX_D_KEEP;
     mux_Z = `MUX_Z_KEEP;
-    mux_A = `MUX_A_ZERO;
-    mux_B = `MUX_B_ZERO;
+    mux_A = `MUX_A_KEEP;
+    mux_B = `MUX_B_KEEP;
     mux_div_rem = `MUX_DIV_REM_R;
     mux_out = `MUX_OUT_ZERO;
     mux_aluout = `MUX_ALUOUT_MULT;
@@ -120,7 +119,7 @@ begin
             mux_B = `MUX_B_ZERO;
 
             // Reset the counter
-            counter_next = '0;
+            counter_next = 'd31;
 
             next_opcode = get_ir_opcode(instruction);
             
@@ -169,9 +168,25 @@ begin
 
             end else begin
                 if (pcpi_valid && (next_opcode == OPCODE_CUSTOM)) begin
-                    // reset quotient mux
-                    mux_Z = `MUX_Z_ZERO;
-                    next_state = SELECT;
+                   
+                    if(next_current_func == MODQ) begin
+                        counter_next = 'd31;
+                        mux_D = `MUX_D_Q;
+                        mux_R = `MUX_R_A;
+                        mux_Z = `MUX_Z_ZERO;
+                        next_state = DIVID;
+                        if (rs1 < {18'b0,Q_LOGIC}) begin
+                            mux_R = `MUX_R_A; // get rs1 to return in case of REM
+                            next_state = DONE;
+                        end
+                    end else begin // ADDMOD and SUBMOD
+                         // copy inputs to R and D operands
+                        mux_R = `MUX_R_A;
+                        mux_D = `MUX_D_B;
+                        // reset quotient mux
+                        mux_Z = `MUX_Z_ZERO;
+                        next_state = SELECT;
+                    end
                 end else begin
                     next_state = IDLE;
                 end
@@ -188,10 +203,10 @@ begin
 
             // Next state logic
             // If counter is 31, it means we have ran the loop from 0 to 31
-            if (counter < 5'b11111) begin
+            if (counter > '0) begin
                 next_state = DIVID;
                 // Incrementing the counter
-                counter_next = counter + 5'b00001;
+                counter_next = counter - 5'b00001;
             end else begin
                 next_state = SELECT;
             end
@@ -224,13 +239,13 @@ begin
                         mux_B = `MUX_B_D_UNSIGNED;
                     end
                 endcase
-                next_state = PRE_MULT;    
+                next_state = MULTIP;    
             end else begin
                 if ((current_func == ADDMOD || current_func == SUBMOD) && current_opcode == OPCODE_CUSTOM) begin
                     mux_A = `MUX_A_R_SIGNED;
                     mux_B = `MUX_B_D_SIGNED;
 
-                    next_state = PRE_MULT; 
+                    next_state = MULTIP; 
 
                 end else begin
                     next_state = DONE;
@@ -238,20 +253,15 @@ begin
             end
         end
 
-        PRE_MULT: begin
+        MULTIP: begin
+            pcpi_busy = 1'b1;
+            
             if (current_opcode == OPCODE_CUSTOM) begin
                 mux_aluout = (current_func == ADDMOD) ? `MUX_ALUOUT_ADDER : `MUX_ALUOUT_SUBTR;
             end else begin
                 mux_aluout = `MUX_ALUOUT_MULT;
             end
 
-            pcpi_busy = 1'b1;
-            next_state = MULTIP;
-        end
-
-        MULTIP: begin
-            pcpi_busy = 1'b1;
-            
             if (current_opcode == OPCODE) begin
                 if (current_func == MUL) begin
                     mux_R = `MUX_R_MULT_LOWER;
@@ -273,6 +283,7 @@ begin
             // Check if function is custom function else it is mult,div,rem
             if (current_opcode == OPCODE_CUSTOM) begin
                 mux_div_rem = `MUX_DIV_REM_R;
+                mux_out = `MUX_OUT_ALUOUT_LOWER;
             end else begin
                 // Check if it is multiplication
                 if (is_mult(current_func)) begin

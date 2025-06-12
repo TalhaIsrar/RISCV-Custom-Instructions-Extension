@@ -58,7 +58,6 @@ function logic is_negative(unsigned [31:0] value);
     return value[31];
 endfunction
 
-
 function string get_operation_name(logic [6:0] opcode, func3 func3);
     if(opcode == OPCODE) begin
         case (func3)
@@ -83,6 +82,8 @@ function string get_operation_name(logic [6:0] opcode, func3 func3);
         return "WRONG_OPCODE";
     end
 endfunction
+
+
 
 //// CONTROL SIGNALS
 
@@ -118,6 +119,7 @@ endfunction
 `define MUX_A_R_UNSIGNED `MUX_A_LENGTH'd0 // use value from first input and extend unsigned
 `define MUX_A_R_SIGNED   `MUX_A_LENGTH'd1 // use value from first input and extend signed
 `define MUX_A_ZERO       `MUX_A_LENGTH'd2 // keep it in 0 (saves dynamic power)
+`define MUX_A_KEEP       `MUX_A_LENGTH'd3 // keep previous value
 
 // Multiplexer for B input
 `define MUX_B_LENGTH 2 // number of bits needed to declare mux B
@@ -125,6 +127,7 @@ endfunction
 `define MUX_B_D_UNSIGNED `MUX_B_LENGTH'd0 // use value from second input and extend unsigned
 `define MUX_B_D_SIGNED   `MUX_B_LENGTH'd1 // use value from second input and extend signed
 `define MUX_B_ZERO       `MUX_B_LENGTH'd2 // keep it in 0 (saves dynamic power)
+`define MUX_B_KEEP       `MUX_B_LENGTH'd3 // keep previous value
 
 // Multiplexer for output inverter
 `define MUX_DIV_REM_LENGTH 1 // number of bits needed to declare mux div_rem
