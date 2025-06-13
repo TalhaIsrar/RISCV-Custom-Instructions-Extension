@@ -158,11 +158,8 @@ begin
                 // Next state logic
                 // Same state for DIV/REM and different for MUL
                 if (is_div(next_current_func) || is_rem(next_current_func)) begin
-                    if(rs2 == '0) begin
+                    if(rs2 == '0 || rs1_smaller_rs2) begin
                         mux_R = `MUX_R_A;
-                        next_state = DONE;
-                    end else if (rs1_smaller_rs2) begin
-                        mux_R = `MUX_R_A; // get rs1 to return in case of REM
                         next_state = DONE;
                     // Overflow
                     end else if ((next_current_func == DIV || next_current_func == REM) && rs1 == {-32'd1} && rs2 == {32{1'b1}}) begin
@@ -176,20 +173,12 @@ begin
 
             end else begin
                 if (pcpi_valid && (next_opcode == OPCODE_CUSTOM)) begin
-                   
-                    if(next_current_func == MULQ) begin
-                        mux_R = `MUX_R_A;
-                        mux_D = `MUX_D_B;
-                        mux_Z = `MUX_Z_ZERO;
-                        next_state = SELECT;
-                    end else begin // ADDMOD and SUBMOD
-                         // copy inputs to R and D operands
-                        mux_R = `MUX_R_A;
-                        mux_D = `MUX_D_B;
-                        // reset quotient mux
-                        mux_Z = `MUX_Z_ZERO;
-                        next_state = SELECT;
-                    end
+                    // copy inputs to R and D operands
+                    mux_R = `MUX_R_A;
+                    mux_D = `MUX_D_B;
+                    mux_Z = `MUX_Z_ZERO; // reset quotient mux
+                    next_state = SELECT;
+                    
                 end else begin
                     next_state = IDLE;
                 end
@@ -250,13 +239,13 @@ begin
                 if ((current_func == ADDMOD || current_func == SUBMOD) && current_opcode == OPCODE_CUSTOM) begin
                     mux_A = `MUX_A_R_SIGNED;
                     mux_B = `MUX_B_D_SIGNED;
-
                     next_state = MULTIP; 
 
                 end else if (current_func == MULQ && current_opcode == OPCODE_CUSTOM) begin
                     mux_A = `MUX_A_R_UNSIGNED;
                     mux_B = `MUX_B_D_UNSIGNED;
                     next_state = MULTIP;
+                    
                 end else begin
                     mux_A = `MUX_A_R_UNSIGNED;
                     mux_B = `MUX_B_D_UNSIGNED;
@@ -268,6 +257,9 @@ begin
         MULTIP: begin
             pcpi_busy = 1'b1;
 
+            mux_R = `MUX_R_MULT_LOWER;
+            mux_div_rem = `MUX_DIV_REM_R;
+
             if (current_opcode == OPCODE) begin
                 if (current_func == MUL) begin
                     mux_R = `MUX_R_MULT_LOWER;
@@ -276,9 +268,6 @@ begin
                     mux_Z = `MUX_Z_MULT_UPPER;
                     mux_div_rem = `MUX_DIV_REM_Z;
                 end
-            end else begin
-                mux_R = `MUX_R_MULT_LOWER;
-                mux_div_rem = `MUX_DIV_REM_R;
             end
 
             next_state = DONE;
