@@ -20,6 +20,7 @@ module m_controller(
     output logic pcpi_ready,
     output logic pcpi_wr,
     output logic pcpi_busy,
+    output logic result_signed,
     // DATA OUTPUTS
     output logic [31:0] rs1_neg, rs2_neg
 );
@@ -31,6 +32,7 @@ logic [4:0] counter_next;
 // Internal register to store input function
 logic [2:0] current_func, next_current_func;
 logic [6:0] current_opcode, next_opcode;
+logic next_result_signed;
 
 // Comparator (subtractor) for input values
 logic rs1_smaller_rs2;
@@ -76,12 +78,14 @@ begin
         counter <= 5'b00000;
         current_func <= '0;
         current_opcode <= '0;
+        result_signed <= '0;
     end
     else begin
         state <= next_state;
         counter <= counter_next;
         current_func <= next_current_func;
         current_opcode <= next_opcode;
+        result_signed <= next_result_signed;
     end
 end
 
@@ -105,6 +109,7 @@ begin
     next_current_func = current_func;
     next_opcode = current_opcode;
     counter_next = '0;
+    next_result_signed = result_signed;
     
     // setting registers to previous state
     next_state = state;
@@ -223,18 +228,21 @@ begin
                     MULH: begin
                         mux_A = `MUX_A_R_SIGNED;
                         mux_B = `MUX_B_D_SIGNED;
+                        next_result_signed = '1;
                     end
             
                     // For MULHSU first input is signed and second unsigned
                     MULHSU: begin
                         mux_A = `MUX_A_R_SIGNED;
                         mux_B = `MUX_B_D_UNSIGNED;
+                        next_result_signed = '1;
                     end
 
                     // For MUL & MULHU both inputs are unsigned
                     default: begin
                         mux_A = `MUX_A_R_UNSIGNED;
                         mux_B = `MUX_B_D_UNSIGNED;
+                        next_result_signed = '0;
                     end
                 endcase
                 next_state = MULTIP;    

@@ -40,6 +40,7 @@ logic [`MUX_B_LENGTH-1:0] mux_B;
 logic [`MUX_DIV_REM_LENGTH-1:0] mux_div_rem;
 logic [`MUX_OUT_LENGTH-1:0] mux_out;
 logic [`MUX_ALUOUT_LENGTH-1:0] mux_aluout;
+logic result_signed;
 
 
 //// SUB-BLOCK INSTANTIATION
@@ -49,14 +50,14 @@ m_controller controller (
     .clk(clk), .resetn(resetn), .pcpi_valid(valid), // control input
     .instruction(instruction), .rs1(rs1), .rs2(rs2), .R(R), // data inputs
     .mux_R(mux_R), .mux_D(mux_D), .mux_Z(mux_Z), .mux_A(mux_A), .mux_B(mux_B), // control inputs
-    .mux_div_rem(mux_div_rem), .mux_aluout(mux_aluout), .mux_out(mux_out), .pcpi_ready(ready), .pcpi_wr(wr), .pcpi_busy(busy), // control inputs
+    .mux_div_rem(mux_div_rem), .mux_aluout(mux_aluout), .mux_out(mux_out), .pcpi_ready(ready), .pcpi_wr(wr), .pcpi_busy(busy),  .result_signed(result_signed),// control inputs
     .rs1_neg(rs1_neg), .rs2_neg(rs2_neg) // data outputs
 );
 
 
 // REGISTER FILE
 m_registers registers(
-    .clk(clk), .resetn(resetn), .mux_A(mux_A), .mux_B(mux_B), .sub_neg(sub_neg), .mux_R(mux_R), .mux_D(mux_D), .mux_Z(mux_Z), // control inputs
+    .clk(clk), .resetn(resetn), .mux_A(mux_A), .mux_B(mux_B), .sub_neg(sub_neg), .mux_R(mux_R), .mux_D(mux_D), .mux_Z(mux_Z), .result_signed(result_signed), // control inputs
     .rs1(rs1), .rs2(rs2), .rs1_neg(rs1_neg), .rs2_neg(rs2_neg), .sub_result(sub_result), .alu_out(alu_out), // data inputs
     .A(A), .B(B), .R(R), .D(D), .Z(Z) // data outputs
 );

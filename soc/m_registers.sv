@@ -7,6 +7,7 @@ module m_registers(
     input logic [`MUX_B_LENGTH-1:0]   mux_B,
     //input logic ALU_neg, // whether the result in the ALU is negative. Not needed
     input logic sub_neg,
+    input logic result_signed,
     input logic [`MUX_R_LENGTH-1:0] mux_R, // multiplexer selection for remainder
     input logic [`MUX_D_LENGTH-1:0] mux_D, // multiplexer selection for divisor
     input logic [`MUX_Z_LENGTH-1:0] mux_Z, // multiplexer selection for quotient
@@ -89,11 +90,8 @@ begin
     unique case (mux_Z)
         `MUX_Z_KEEP:    next_Z = Z;
         `MUX_Z_ZERO:    next_Z = '0;
-        `MUX_Z_SHL_ADD: begin
-            next_Z[31:1] = Z[30:0];
-            next_Z[0]    = sub_neg ? 1'b0 : 1'b1;
-        end
-        `MUX_Z_MULT_UPPER: next_Z = ((mux_A == `MUX_A_R_SIGNED || mux_B == `MUX_B_D_SIGNED)) ? {alu_out[65], alu_out[62:32]} : alu_out[63:32];
+        `MUX_Z_SHL_ADD: next_Z = {Z[30:0],~sub_neg};
+        `MUX_Z_MULT_UPPER: next_Z = result_signed ? {alu_out[65], alu_out[62:32]} : alu_out[63:32];
     endcase
 
     unique case (mux_A)
