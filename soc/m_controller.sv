@@ -7,7 +7,7 @@ module m_controller(
     // DATA INPUTS
     input logic [31:0] instruction, // instruction to analyze
     input logic [31:0] rs1, rs2, // operands to analyze
-    input logic [31:0] alu_out, // alu output for comparison
+    input logic [31:0] R, // alu output for comparison
     // CONTROL OUTPUTS
     output logic [`MUX_R_LENGTH-1:0] mux_R, // multiplexer for remainder
     output logic [`MUX_D_LENGTH-1:0] mux_D, // multiplexer for divisor
@@ -50,7 +50,8 @@ typedef enum logic [2:0] {
     SELECT = 3'b010,
     DONE   = 3'b011,
     MULTIP = 3'b100,
-    SELECT_MULQ = 3'b101
+    SELECT_MULQ = 3'b101,
+    SELECT_MULQDIV = 3'b110
 } state_t;
 state_t state, next_state;
 
@@ -63,9 +64,6 @@ always_comb begin
     abs_rs1[31:0] = (is_negative(rs1) && rs1_is_signed((state == DONE) ? current_func : next_current_func)) ? rs1_neg : rs1;
     abs_rs2[31:0] = (is_negative(rs2) && rs2_is_signed((state == DONE) ? current_func : next_current_func)) ? rs2_neg : rs2;
     
-    abs_rs1 = (current_opcode == OPCODE_CUSTOM) ? alu_out[31:0] : abs_rs1;
-    abs_rs2 = (current_opcode == OPCODE_CUSTOM) ? {18'd0,Q_LOGIC} : abs_rs1;
-
     rs1_smaller_rs2 = abs_rs1 < abs_rs2;
 end
 
@@ -282,17 +280,22 @@ begin
                     mux_aluout = `MUX_ALUOUT_MULT;
                     mux_R = `MUX_R_MULT_LOWER;
                     mux_D = `MUX_D_Q;
-                    
-                    if(rs1_smaller_rs2) begin
-                        next_state = DONE;
-                    end else begin
-                        next_state = DIVID;
-                        counter_next = 'd27;
-                    end
+                    next_state = SELECT_MULQDIV;                    
                 end else begin
                     mux_aluout = (current_func == ADDMOD) ? `MUX_ALUOUT_ADDER : `MUX_ALUOUT_SUBTR;
                 end
             end
+        end
+
+        SELECT_MULQDIV: begin
+            pcpi_busy = 1'b1;
+            if(R[27:0] < {14'd0,Q_LOGIC}) begin
+                next_state = DONE;
+            end else begin
+                next_state = DIVID;
+                counter_next = 'd27;
+            end
+
         end
 
         SELECT_MULQ: begin
